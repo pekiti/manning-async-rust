@@ -4,8 +4,6 @@ Implementation of Manning live project [Data Streaming with Async Rust] (https:/
 
 --- 
 
-This is my code while participating in the project.
-
 ## Running
 
 ```bash
