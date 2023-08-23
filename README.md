@@ -5,3 +5,18 @@ Implementation of Manning live project [Data Streaming with Async Rust] (https:/
 --- 
 
 This is my code while participating in the project.
+
+## Running
+
+```bash
+# Run
+cargo run -- --from 2019-04-04T12:00:08Z --symbols LYFT,MSFT,AAPL,UBER,LYFT,FB,AMD,GOOG
+# Test
+cargo test
+```
+
+## Notes
+
+- [Rust associated types](https://doc.rust-lang.org/book/ch19-03-advanced-traits.html#specifying-placeholder-types-in-trait-definitions-with-associated-types)
+
+
