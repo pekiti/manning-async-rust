@@ -6,7 +6,7 @@ Implementation of Manning live project [Data Streaming with Async Rust] (https:/
 
 ## Running
 
-```bash
+```zsh
 # Run
 cargo run -- --from 2019-04-04T12:00:08Z --symbols LYFT,MSFT,AAPL,UBER,LYFT,FB,AMD,GOOG
 # Test
