@@ -1,9 +1,7 @@
 use async_trait::async_trait;
-use async_trait::async_trait;
 use chrono::prelude::*;
 use clap::Parser;
 use std::io::{Error, ErrorKind};
-use yahoo::time::OffsetDateTime;
 use yahoo_finance_api as yahoo;
 
 #[derive(Parser, Debug)]
@@ -58,7 +56,7 @@ impl AsyncStockSignal for PriceDifference {
     }
 }
 #[async_trait]
-impl StockSignal for MinPrice{
+impl AsyncStockSignal for MinPrice {
     type SignalType = f64;
 
     async fn calculate(&self, series: &[f64]) -> Option<Self::SignalType> {
@@ -74,7 +72,7 @@ impl AsyncStockSignal for MaxPrice {
     }
 }
 #[async_trait]
-impl StockSignal for WindowedSMA { 
+impl AsyncStockSignal for WindowedSMA {
     type SignalType = Vec<f64>;
 
     async fn calculate(&self, series: &[f64]) -> Option<Self::SignalType> {
@@ -83,7 +81,7 @@ impl StockSignal for WindowedSMA {
 }
 
 ///
-/// Calculates the absolute and relative difference between the beginning and ending of an f64 series. 
+/// Calculates the absolute and relative difference between the beginning and ending of an f64 series.
 // The relative difference is relative to the beginning.
 ///
 /// # Returns
@@ -142,18 +140,19 @@ async fn min(series: &[f64]) -> Option<f64> {
 }
 
 ///
-/// Retrieve data from a data source and extract the closing prices. 
+/// Retrieve data from a data source and extract the closing prices.
 /// Errors during download are mapped onto io::Errors as InvalidData.
 ///
 async fn fetch_closing_data(
     symbol: &str,
-    beginning: &OffsetDateTime,
-    end: &OffsetDateTime,
+    beginning: &DateTime<Utc>,
+    end: &DateTime<Utc>,
 ) -> std::io::Result<Vec<f64>> {
     let provider = yahoo::YahooConnector::new();
 
     let response = provider
-        .get_quote_history(symbol, *beginning, *end).await
+        .get_quote_history(symbol, *beginning, *end)
+        .await
         .map_err(|_| Error::from(ErrorKind::InvalidData))?;
     let mut quotes = response
         .quotes()
@@ -170,28 +169,24 @@ async fn fetch_closing_data(
 async fn main() -> std::io::Result<()> {
     let opts = Opts::parse();
     let from: DateTime<Utc> = opts.from.parse().expect("Couldn't parse 'from' date");
-   
-    let from = OffsetDateTime::from_unix_timestamp(from.timestamp());
-    let to = OffsetDateTime::from_unix_timestamp(Utc::now().timestamp());
-
-    println!("from: {:?}, to: {:?}", from.unwrap(), to.unwrap());
+    let to = Utc::now();
 
     // a simple way to output a CSV header
     println!("period start,symbol,price,change %,min,max,30d avg");
     for symbol in opts.symbols.split(',') {
-        let closes = fetch_closing_data(&symbol, &from.unwrap(), &to.unwrap()).await?;
+        let closes = fetch_closing_data(&symbol, &from, &to).await?;
         if !closes.is_empty() {
-                // min/max of the period. unwrap() because those are Option types
-                let period_max: f64 = max(&closes).await.unwrap();
-                let period_min: f64 = min(&closes).await.unwrap();
-                let last_price = *closes.last().unwrap_or(&0.0);
-                let (_, pct_change) = price_diff(&closes).await.unwrap_or((0.0, 0.0));
-                let sma = n_window_sma(30, &closes).unwrap_or_default();
+            // min/max of the period. unwrap() because those are Option types
+            let period_max: f64 = max(&closes).await.unwrap();
+            let period_min: f64 = min(&closes).await.unwrap();
+            let last_price = *closes.last().unwrap_or(&0.0);
+            let (_, pct_change) = price_diff(&closes).await.unwrap_or((0.0, 0.0));
+            let sma = n_window_sma(30, &closes).await.unwrap_or_default();
 
             // a simple way to output CSV data
             println!(
                 "{},{},${:.2},{:.2}%,${:.2},${:.2},${:.2}",
-                from.unwrap(),
+                from.to_rfc3339(),
                 symbol,
                 last_price,
                 pct_change * 100.0,
@@ -209,20 +204,16 @@ mod tests {
     #![allow(non_snake_case)]
     use super::*;
 
-    macro_rules! aw {
-        ($e:expr) => {
-            tokio_test::block_on($e)
-        };
-      }
-
-    #[test]
-    fn test_PriceDifference_calculate() {
+    #[tokio::test]
+   async  fn test_PriceDifference_calculate() {
         let signal = PriceDifference {};
         assert_eq!(signal.calculate(&[]).await, None);
         assert_eq!(signal.calculate(&[1.0]).await, Some((0.0, 0.0)));
         assert_eq!(signal.calculate(&[1.0, 0.0]).await, Some((-1.0, -1.0)));
         assert_eq!(
-            signal.calculate(&[2.0, 3.0, 5.0, 6.0, 1.0, 2.0, 10.0]).await,
+            signal
+                .calculate(&[2.0, 3.0, 5.0, 6.0, 1.0, 2.0, 10.0])
+                .await,
             Some((8.0, 4.0))
         );
         assert_eq!(
