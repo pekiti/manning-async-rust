@@ -6,15 +6,13 @@ Implementation of Manning live project [Data Streaming with Async Rust] (https:/
 
 ## Running
 
-```bash
+```zsh
 # Run
 cargo run -- --from 2019-04-04T12:00:08Z --symbols LYFT,MSFT,AAPL,UBER,LYFT,FB,AMD,GOOG
 # Test
 cargo test
 ```
 
-## Notes
+## Resources
 
-- [Rust associated types](https://doc.rust-lang.org/book/ch19-03-advanced-traits.html#specifying-placeholder-types-in-trait-definitions-with-associated-types)
-
-
+- [Tutorial - Rust associated types](https://doc.rust-lang.org/book/ch19-03-advanced-traits.html#specifying-placeholder-types-in-trait-definitions-with-associated-types)
